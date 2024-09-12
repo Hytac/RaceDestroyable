@@ -2,8 +2,8 @@
 import rclpy
 from rclpy.node import Node
 import rclpy.time
-from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
-from rclpy.callback_groups import ReentrantCallbackGroup, MutuallyExclusiveCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import ReentrantCallbackGroup
 from std_srvs.srv import Trigger
 import asyncio
 from threading import Thread
@@ -33,8 +33,7 @@ class NodeClient(Node):
                 client.wait_for_service()
                 client.service_is_ready()
 
-                future = client.call_async(Trigger.Request())
-                rclpy.spin_until_future_complete(self, future, timeout_sec=5.0)
+                response: Trigger.Response = client.call(Trigger.Request())
                 self.total += 1
 
                 elapsed_time = time.time() - start_time
@@ -45,11 +44,6 @@ class NodeClient(Node):
                 self.get_logger().warning(
                     f"Service response recieved in {elapsed_time * 1000:.2f} ms Max {self.max:.2f} Total {self.total}")
 
-                if not future.done():
-                    self.get_logger().error(f"Timeout waiting in thread {index}")
-                    continue
-
-                response: Trigger.Response = future.result()
                 if response.success is False:
                     self.get_logger().error(response.message)
             finally:
